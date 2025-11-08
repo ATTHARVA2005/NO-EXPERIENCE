@@ -224,7 +224,12 @@ function TutorInterface() {
         .eq("id", user.id)
         .single()
 
-      const studentName = profileData?.full_name || user.email?.split("@")[0] || "Student"
+      const studentName =
+        profileData?.name ||
+        profileData?.full_name ||
+        (user.user_metadata as any)?.full_name ||
+        user.email?.split("@")[0] ||
+        "Student"
 
       setSessionData({
         sessionId,
