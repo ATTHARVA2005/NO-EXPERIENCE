@@ -10,11 +10,18 @@ import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Send, Sparkles, BookOpen, Brain } from "lucide-react"
 import { cn } from "@/lib/utils"
+import ImagePlaceholder from "./image-placeholder"
+
+interface MessageImage {
+  src: string
+  title?: string
+}
 
 interface Message {
   role: "student" | "tutor"
   content: string
   timestamp: Date
+  images?: MessageImage[]
 }
 
 interface TutorInterfaceProps {
@@ -81,7 +88,7 @@ export function TutorInterface({ topic, onSessionEnd }: TutorInterfaceProps) {
     setIsLoading(true)
     setQuestionsAsked((prev) => prev + 1)
 
-    try {
+      try {
       const response = await fetch("/api/tutor/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -103,8 +110,11 @@ export function TutorInterface({ topic, onSessionEnd }: TutorInterfaceProps) {
 
       const tutorMessage: Message = {
         role: "tutor",
-        content: data.response,
+        content: data.response || "",
         timestamp: new Date(),
+        images: Array.isArray(data.images)
+          ? data.images.map((i: any) => ({ src: i.link || i, title: i.title }))
+          : undefined,
       }
 
       setMessages((prev) => [...prev, tutorMessage])
@@ -242,6 +252,15 @@ export function TutorInterface({ topic, onSessionEnd }: TutorInterfaceProps) {
                     : "bg-primary text-primary-foreground"
                 )}
               >
+                {/* Render images (if any) before the textual content */}
+                {message.images && message.images.length > 0 && (
+                  <div>
+                    {message.images.map((img, i) => (
+                      <ImagePlaceholder key={i} src={img.src} alt={img.title || `Illustration ${i + 1}`} caption={img.title} />
+                    ))}
+                  </div>
+                )}
+
                 <p className="text-sm whitespace-pre-wrap">
                   {message.content}
                 </p>

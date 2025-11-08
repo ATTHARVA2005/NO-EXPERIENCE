@@ -46,6 +46,7 @@ Duration: ${currentLesson.duration || "ongoing"}
 
 You should:
 - Focus ONLY on topics from this lesson
+- Include relevant visual aids and analogies with Google Search API
 - Teach the subtopics in a logical order
 - Check understanding before moving to next subtopic
 - Provide examples related to the lesson content
@@ -67,7 +68,7 @@ Your teaching style:
 - Provide step-by-step guidance
 - Use encouraging language
 - Adapt to the student's knowledge level
-- When explaining complex topics, consider suggesting visual aids
+- When explaining any topics, provide visual aids
 
 Keep responses concise but thorough (2-3 paragraphs max unless explaining complex topics).`
 
@@ -88,15 +89,7 @@ Keep responses concise but thorough (2-3 paragraphs max unless explaining comple
       temperature: 0.7,
     })
 
-    // Analyze if we need an image for explanation
-    const needsImage = await checkIfNeedsImage(message, text)
-    let imageUrl: string | undefined
-
-    if (needsImage) {
-      imageUrl = await fetchEducationalImage(needsImage.query, topic)
-    }
-
-    // Search for live educational resources using Tavily
+    // Search for live educational resources using Tavily FIRST (so we can use for fallback)
     let liveResources: any[] = []
     try {
       // Build specific search query from current lesson
@@ -124,12 +117,22 @@ Keep responses concise but thorough (2-3 paragraphs max unless explaining comple
         title: r.title,
         type: r.type,
         url: r.url,
+        thumbnail: r.thumbnail, // Preserve thumbnail for image fallback
+        images: r.images, // Preserve images array for fallback
         duration: r.type === "video" ? "Video" : r.type === "documentation" ? "Docs" : "Article",
       }))
       
       console.log("[tutor] Found resources:", liveResources.length)
     } catch (error) {
       console.error("[tutor] Tavily resource search failed:", error)
+    }
+
+    // Analyze if we need an image for explanation (pass liveResources for fallback)
+    const needsImage = await checkIfNeedsImage(message, text)
+    let imageUrl: string | undefined
+
+    if (needsImage) {
+      imageUrl = await fetchEducationalImage(needsImage.query, topic, liveResources)
     }
 
     // Analyze progress based on conversation
@@ -177,6 +180,14 @@ async function checkIfNeedsImage(question: string, response: string) {
     "example",
     "looks like",
     "appears",
+    "what is",
+    "what are",
+    "explain",
+    "describe",
+    "introduction",
+    "overview",
+    "concept",
+    "understand",
   ]
 
   const needsVisualization = visualKeywords.some(
@@ -199,41 +210,116 @@ function extractImageQuery(question: string, response: string): string {
   const combined = `${question} ${response}`.toLowerCase()
 
   // Look for common educational image patterns
+  if (combined.includes("artificial intelligence") || combined.includes("ai")) return "artificial intelligence concept visualization"
+  if (combined.includes("machine learning")) return "machine learning diagram"
+  if (combined.includes("neural network")) return "neural network architecture"
   if (combined.includes("probability")) return "probability diagram coin flip"
   if (combined.includes("statistics")) return "statistics chart data visualization"
   if (combined.includes("math")) return "mathematics illustration"
   if (combined.includes("science")) return "science diagram illustration"
+  if (combined.includes("algorithm")) return "algorithm flowchart"
+  if (combined.includes("data")) return "data visualization infographic"
 
-  return "educational diagram"
+  return "educational diagram concept"
 }
 
-async function fetchEducationalImage(query: string, topic: string): Promise<string | undefined> {
-  try {
-    const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY
-    const searchEngineId = process.env.GOOGLE_CUSTOM_SEARCH_ENGINE_ID
+async function fetchEducationalImage(query: string, topic: string, liveResources?: any[]): Promise<string | undefined> {
+  // Try Google Custom Search first with retry + exponential backoff
+  const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY
+  const searchEngineId = process.env.GOOGLE_CUSTOM_SEARCH_ENGINE_ID
 
-    if (!apiKey || !searchEngineId) {
-      console.warn("[tutor] Google Custom Search not configured")
-      return undefined
-    }
-
-    const searchQuery = `${topic} ${query} educational diagram`
-    const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(
-      searchQuery
-    )}&searchType=image&num=1&safe=active&imgSize=medium`
-
-    const response = await fetch(url)
-    const data = await response.json()
-
-    if (data.items && data.items.length > 0) {
-      return data.items[0].link
-    }
-
-    return undefined
-  } catch (error) {
-    console.error("[tutor] Error fetching image:", error)
-    return undefined
+  if (!apiKey || !searchEngineId) {
+    console.warn("[tutor] Google Custom Search not configured, trying Tavily fallback")
+    return tryTavilyThumbnailFallback(liveResources)
   }
+
+  const searchQuery = `${topic} ${query} educational diagram`
+  
+  console.log("[tutor] Google Custom Search query:", searchQuery)
+  
+  // Build URL with URLSearchParams for safety
+  const url = new URL("https://www.googleapis.com/customsearch/v1")
+  url.searchParams.set("key", apiKey)
+  url.searchParams.set("cx", searchEngineId)
+  url.searchParams.set("q", searchQuery)
+  url.searchParams.set("searchType", "image")
+  url.searchParams.set("num", "1")
+  url.searchParams.set("safe", "active")
+  url.searchParams.set("imgSize", "medium")
+  url.searchParams.set("imgType", "photo")
+  url.searchParams.set("fileType", "jpg,png")
+  url.searchParams.set("fields", "items(link,title)")
+
+  const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms))
+  const maxAttempts = 3
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(url.toString())
+      const data = await response.json()
+
+      console.log("[tutor] Google API response status:", response.status)
+      console.log("[tutor] Google API response data:", JSON.stringify(data, null, 2))
+
+      if (data.items && data.items.length > 0) {
+        console.log(`[tutor] Found image from Google Custom Search: ${data.items[0].title || 'untitled'}`)
+        return data.items[0].link
+      }
+
+      // No results - try Tavily fallback before placeholder
+      console.warn("[tutor] No image results from Google Custom Search, trying Tavily fallback")
+      return tryTavilyThumbnailFallback(liveResources)
+    } catch (error: any) {
+      console.error(`[tutor] Error fetching image (attempt ${attempt}):`, error)
+
+      // If this was the last attempt, try Tavily fallback before giving up
+      if (attempt >= maxAttempts) {
+        console.warn("[tutor] Exhausted image fetch retries, trying Tavily fallback")
+        return tryTavilyThumbnailFallback(liveResources)
+      }
+
+      // For transient DNS/network errors (EAI_AGAIN) or other network failures, wait and retry
+      const isTransient = error?.code === "EAI_AGAIN" || error?.errno === "EAI_AGAIN" || (error && typeof error === "object")
+      const backoffMs = 500 * Math.pow(2, attempt - 1) // 500ms, 1000ms, 2000ms
+      if (isTransient) {
+        await sleep(backoffMs)
+        continue
+      }
+
+      // Non-transient error: try Tavily fallback
+      return tryTavilyThumbnailFallback(liveResources)
+    }
+  }
+
+  // Fallback in case loop exits unexpectedly
+  return tryTavilyThumbnailFallback(liveResources)
+}
+
+function tryTavilyThumbnailFallback(liveResources?: any[]): string | undefined {
+  // Try to extract a thumbnail from Tavily resources (if available)
+  console.log("[tutor] Checking Tavily resources for images/thumbnails:", JSON.stringify(liveResources, null, 2))
+  
+  if (liveResources && liveResources.length > 0) {
+    // First, check if any resource has images array
+    for (const resource of liveResources) {
+      if (resource.images && Array.isArray(resource.images) && resource.images.length > 0) {
+        console.log("[tutor] Using Tavily images array as fallback:", resource.images[0])
+        return resource.images[0]
+      }
+    }
+    
+    // Second, check for thumbnail field
+    for (const resource of liveResources) {
+      if (resource.thumbnail) {
+        console.log("[tutor] Using Tavily thumbnail as fallback:", resource.thumbnail)
+        return resource.thumbnail
+      }
+    }
+  }
+
+  // Final fallback: local placeholder
+  console.warn("[tutor] No images from Google or Tavily, using local placeholder")
+  return "/placeholder.jpg"
 }
 
 async function analyzeProgress(

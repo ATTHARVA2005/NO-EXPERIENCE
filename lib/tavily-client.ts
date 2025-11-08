@@ -7,6 +7,8 @@ export interface RealResource {
   score: number
   publishedDate?: string
   type: "article" | "video" | "documentation" | "interactive"
+  thumbnail?: string  // Add thumbnail field
+  images?: string[]   // Add images array field
 }
 
 /**
@@ -34,6 +36,7 @@ export async function searchEducationalResources(
         max_results: count * 3, // Get more results to filter
         include_answer: false,
         include_raw_content: false,
+        include_images: true, // Enable images in results
         include_domains: [
           "youtube.com",
           "youtu.be",
@@ -65,6 +68,7 @@ export async function searchEducationalResources(
     const data = await response.json()
     
     console.log("[Tavily] Results found:", data.results?.length || 0)
+    console.log("[Tavily] Images found:", data.images?.length || 0)
     
     const resources: RealResource[] = (data.results || [])
       .map((result: any) => {
@@ -106,6 +110,8 @@ export async function searchEducationalResources(
           score: (result.score || 0) + priority, // Boost score with priority
           publishedDate: result.published_date,
           type,
+          thumbnail: result.thumbnail, // Include thumbnail if available
+          images: data.images, // Include global images array from Tavily
         }
       })
       .sort((a: RealResource, b: RealResource) => b.score - a.score) // Sort by score (highest first)

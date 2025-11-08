@@ -285,7 +285,31 @@ export async function POST(request: NextRequest) {
 
     const retrievalContext = ragContext.trim().length > 0 ? ragContext : undefined
 
-    const response = await generateTutorResponse(message, context, normalizedHistory, retrievalContext)
+    let response = await generateTutorResponse(message, context, normalizedHistory, retrievalContext)
+    // Detect an optional image_query JSON object appended by the agent
+    let images: { link: string; title?: string; contextLink?: string }[] | undefined = undefined
+    try {
+      // Look for a JSON object on its own line at the end of the response
+      const jsonMatch = response.trim().match(/\{[\s\S]*\}$/)
+      if (jsonMatch) {
+        const possibleJson = jsonMatch[0]
+        try {
+          const parsed = JSON.parse(possibleJson)
+          if (parsed && typeof parsed.image_query === "string" && parsed.image_query.trim().length > 0) {
+            // remove the JSON token from the textual response
+            response = response.replace(possibleJson, "").trim()
+            // fetch images using helper
+            const { searchImages } = await import("@/lib/images/google-image-search")
+            const results = await searchImages(parsed.image_query, 3)
+            images = results.map((r: any) => ({ link: r.link, title: r.title, contextLink: r.contextLink }))
+          }
+        } catch (e) {
+          // ignore JSON parse errors - treat as normal text
+        }
+      }
+    } catch (err) {
+      console.warn("Error while attempting to extract image query from tutor response", err)
+    }
 
     const readyForAssessment = normalizedHistory.length >= 3 && recentPerformance === 0
 
@@ -294,6 +318,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       response,
+      images,
       readyForAssessment,
       topicsCovered: [topic || context.topic].filter(Boolean),
       context: {
