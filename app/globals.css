@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+/* Neo-Brutalism Global Theme */
+:root {
+  /* Background - White for Neo-Brutalism */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+
+  /* Cards / surfaces */
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+
+  /* Primary - Orange */
+  --primary: 25 95% 53%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary - Blue for contrast */
+  --secondary: 217 91% 60%;
+  --secondary-foreground: 0 0% 100%;
+
+  /* Accents */
+  --accent: 25 95% 53%;
+  --muted: 0 0% 90%;
+
+  /* Borders - Heavy black for neo-brutalism */
+  --border: 0 0% 0%;
+  --input: 0 0% 100%;
+  --ring: 25 95% 53%;
+
+  /* Charts */
+  --chart-1: 25 95% 53%;
+  --chart-2: 217 91% 60%;
+  --chart-3: 45 93% 51%;
+
+  --radius: 0.25rem;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Courier New", monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 600;
+}
+
+/* Figma-inspired utility classes */
+@layer utilities {
+  /* Gradient backgrounds */
+  .gradient-purple-pink {
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  }
+
+  .gradient-purple-blue {
+    background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+  }
+
+  .gradient-green-teal {
+    background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+  }
+
+  .gradient-orange-red {
+    background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  }
+
+  .gradient-blue-cyan {
+    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  }
+
+  .gradient-yellow-orange {
+    background: linear-gradient(135deg, #eab308 0%, #f97316 100%);
+  }
+
+  /* Neobrutalism utilities */
+
+  /* Simple solid backgrounds tuned to orange palette */
+  .bg-primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .bg-accent {
+    background: hsl(var(--accent));
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* Neobrutalism heavy border + offset shadow */
+  .neobrutal {
+    background: hsl(var(--card));
+    border: 6px solid hsl(var(--border));
+    border-radius: 0.35rem;
+    box-shadow: 8px 8px 0 0 rgba(0,0,0,0.85);
+  }
+
+  /* Card style used for many components */
+  .neobrutal-card {
+    padding: 1rem;
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 6px solid hsl(var(--border));
+    border-radius: var(--radius);
+    box-shadow: 8px 8px 0 0 rgba(0,0,0,0.85);
+  }
+
+  /* Backwards-compatibility: map existing glass-card usage to neobrutal look */
+  .glass-card {
+    padding: 1rem;
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 6px solid hsl(var(--border));
+    border-radius: var(--radius);
+    box-shadow: 8px 8px 0 0 rgba(0,0,0,0.85);
+  }
+
+  .neobrutal-outline {
+    border: 6px solid hsl(var(--border));
+    border-radius: 0.25rem;
+  }
+
+  /* Buttons: boxy, thick border, simple fill */
+  .btn-primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    padding: 0.5rem 1.25rem;
+    font-weight: 700;
+    border: 6px solid hsl(var(--border));
+    border-radius: 0.35rem;
+    box-shadow: 6px 6px 0 0 rgba(0,0,0,0.85);
+    cursor: pointer;
+  }
+
+  .btn-primary:active {
+    transform: translate(4px, 4px);
+    box-shadow: 2px 2px 0 0 rgba(0,0,0,0.85);
+  }
+
+  .btn-secondary {
+    background: hsl(var(--input));
+    color: hsl(var(--foreground));
+    padding: 0.5rem 1rem;
+    border: 6px solid hsl(var(--border));
+    border-radius: 0.35rem;
+    cursor: pointer;
+  }
+
+  /* Interactive cards with small lift and neobrutal border color change */
+  .card-interactive {
+    transition: transform 0.15s linear, box-shadow 0.15s linear;
+    cursor: pointer;
+  }
+
+  .card-interactive:hover {
+    transform: translateY(-6px);
+  }
+
+  /* Inputs styled to look neobrutalist */
+  input, textarea, select {
+    background: hsl(var(--input));
+    color: hsl(var(--foreground));
+    border: 6px solid hsl(var(--border));
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    box-shadow: 4px 4px 0 0 rgba(0,0,0,0.6);
+  }
+
+  /* Minimal badges */
+  .badge-glow {
+    box-shadow: 0 0 0 4px rgba(255,150,50,0.08);
+  }
+
+  /* Typography adjustments */
+  .heading-xl { font-size: 3rem; font-weight: 800; }
+  .heading-lg { font-size: 2rem; font-weight: 700; }
+  .text-body { font-size: 1.0625rem; color: hsl(var(--foreground)); }
+
+  /* Grid helpers kept */
+  .grid-auto-fit { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; }
+  .grid-auto-fill { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.25rem; }
+
+  /* Scrollbar styling - simple */
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 4px; }
+
+  /* Status dot */
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* Backdrop blur */
+  .backdrop-blur-xl {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  /* Z-index layers */
+  .z-nav {
+    z-index: 50;
+  }
+
+  .z-modal {
+    z-index: 100;
+  }
+
+  .z-tooltip {
+    z-index: 150;
+  }
+}
