@@ -1,4 +1,4 @@
-# 🎓 NO-EXPERIENCE - AI-Powered Educational Platform
+# 🎓 EduAgents: Agentic- AI-Powered Educational Platform
 
 <div align="center">
 
@@ -43,7 +43,7 @@
 
 ## 🌟 Overview
 
-**NO-EXPERIENCE** is a next-generation educational platform powered by artificial intelligence that provides personalized learning experiences. The platform combines real-time AI tutoring, dynamic curriculum generation, adaptive assessments, and voice-enabled learning to create a comprehensive educational ecosystem.
+**EduAgents** is a next-generation educational platform powered by artificial intelligence that provides personalized learning experiences. The platform combines real-time AI tutoring, dynamic curriculum generation, adaptive assessments, and voice-enabled learning to create a comprehensive educational ecosystem.
 
 ### Why NO-EXPERIENCE?
 
